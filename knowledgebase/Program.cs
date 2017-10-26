@@ -58,7 +58,6 @@ namespace knowledgebase
             if (Console.ReadKey(true).Key == ConsoleKey.Escape) return;
         }
     }
-
     class Individual
     {
         public string name;
@@ -105,9 +104,11 @@ namespace knowledgebase
         }
         public bool DoesPass(Individual i)
         {
-            if (i.properties.Contains(this.consequence)) return false;
-            foreach (string c in i.properties)
-                if (!i.properties.Contains(c)) return false;
+            if (i.properties.Contains(this.consequence))
+                return false;
+            foreach (string condition in this.antecedents)
+                if (!i.properties.Contains(condition))
+                    return false;
             return true;
         }
         public override string ToString()
@@ -129,8 +130,8 @@ namespace knowledgebase
                 Individual i = GetIndividual(line, individuals);
                 if (i != null) individuals.Add(i);
             } else {
-                string[] split = line.Split(">");
-                string[] ruleIndividuals = split[0].Split(",");
+                string[] split = line.Split(" > ");
+                string[] ruleIndividuals = split[0].Split(", ");
                 ArrayList antecedents = new ArrayList();
                 foreach (string s in ruleIndividuals)
                 {
