@@ -1,0 +1,7 @@
+tall(bob)
+heavy(bill)
+tall(X) > heavy(X)
+tall(jimmy)
+small(bobby)
+tiny(billy)
+tiny(B) > funny(B)
