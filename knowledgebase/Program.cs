@@ -14,6 +14,11 @@ namespace knowledgebase
             ArrayList strings = new ArrayList();
             int counter = 0;
             string line;
+            if (args.Length == 0) {
+                Console.WriteLine("Please specify a filename as an argument " +
+                    "for the program");
+                return;
+            }
             // Read the file and display it line by line.
             System.IO.StreamReader file =
                 new System.IO.StreamReader(args[0]);
@@ -26,13 +31,19 @@ namespace knowledgebase
             {
                 parser.ParseLine(l, individuals, rules);
             }
+            Console.WriteLine("Individuals\n----------");
             foreach (Individual i in individuals)
             {
                 Console.WriteLine(i.ToString());
             }
+            Console.WriteLine("Rules\n-----");
             foreach (Rule r in rules)
             {
                 Console.WriteLine(r.ToString());
+                if (r.CheckIfSatisfied(individuals))
+                {
+                    Console.WriteLine(r.consequence.ToString());
+                }
             }
             Console.WriteLine("Press 'ESC' to close the window.");
             if (Console.ReadKey(true).Key == ConsoleKey.Escape) return;
@@ -66,7 +77,7 @@ namespace knowledgebase
             {
                 properties += p.ToString() + ", ";
             }
-            return "Individual name = " + this.name + " Properties = " + properties;
+            return "Individual: name = " + this.name + " Properties = " + properties;
         }
     }
     class Property
@@ -82,7 +93,7 @@ namespace knowledgebase
         }
         public override string ToString()
         {
-            return "Property = " + this.type;
+            return this.type;
         }
     }
     class Rule
@@ -99,68 +110,94 @@ namespace knowledgebase
             this.antecedents = antecedents;
             this.consequence = individual;
         }
+        public Rule(string[] antecedents, Individual individual)
+        {
+
+        }
+        // TODO: Handle generics
+        public bool CheckIfSatisfied(ArrayList individuals)
+        {
+            Regex rgx = new Regex("[A-Z]");
+            bool flag = false;
+            foreach (Individual i in this.antecedents) // TODO: Possible Generic
+            {
+                flag = false;
+                foreach (Individual ii in individuals)
+                {
+                    // if (i.name == ii.name) flag = true;
+                    if (rgx.IsMatch(i.name) && !CheckProperties(i, ii)) // Generic
+                    {
+                        return false;
+                    }
+                }
+                if (!flag) return false;
+            }
+            return true;
+        }
+        private bool CheckProperties(Individual i, Individual ii)
+        {
+            foreach(Property p in i.properties)
+            {
+                foreach (Property pp in ii.properties)
+                {
+                    if (p.type == pp.type) return true;
+                }
+            }
+            return false;
+        }
         public override string ToString()
         {
-            return "Antecedents = " + this.antecedents.ToString() + " Consequence = " + this.consequence;
+            string antecedents = "";
+            foreach (Individual s in this.antecedents)
+            {
+                antecedents += "(" + s.ToString() + ")";
+            }
+            return "Rule: [ Antecedents = " + antecedents + " Consequence = " + this.consequence + " ]";
         }
     }
     class Parser
     {
-        public Individual GetIndividual(string line, ArrayList individiuals, ArrayList rules)
+        public void ParseLine(string line, ArrayList individuals, ArrayList rules)
         {
-            String[] split = Regex.Split(line, @"[(|)]"); // TODO: Check if this works
-            foreach (Individual i in individiuals)
+            if (!line.Contains(">")) // Def not a rule
             {
-                if (split.Length <= 0) Console.WriteLine("error");
+                Individual i = GetIndividual(line, individuals);
+                if (i != null) individuals.Add(i);
+            } else { // we have a rule
+                // TODO: Check if generic and apply
+                string[] split = line.Split(">");
+                string[] ruleIndividuals = split[0].Split(",");
+                ArrayList antecedents = new ArrayList();
+                foreach (string s in ruleIndividuals)
+                {
+                    antecedents.Add(GetIndividual(s));
+                }
+                rules.Add(new Rule(antecedents, GetIndividual(split[1])));
+            }
+            return;
+        }
+        public Individual GetIndividual(string line)
+        {
+            string[] split = Regex.Split(line, @"[(|)]");
+            ArrayList properties = new ArrayList();
+            properties.Add(new Property(split[0]));
+            return new Individual(split[1], properties);
+        }
+        // TODO: Check if generic
+        public Individual GetIndividual(string line, ArrayList individuals)
+        {
+            string[] split = Regex.Split(line, @"[(|)]");
+            foreach (Individual i in individuals)
+            {
                 if (i.name == split[1])
                 {
                     i.properties.Add(new Property(split[0]));
                     return null;
                 }
             }
-            foreach (Rule r in rules)
-            {
-                foreach (Individual i in r.antecedents)
-                {
-                    if (i.name == split[1])
-                    {
-                        i.properties.Add(new Property(split[0]));
-                        return null;
-                    }
-                }
-            }
-            return new Individual(split[1], new Property(split[0]));
-        }
-        public void ParseLine(string line, ArrayList individuals, ArrayList rules)
-        {
-            string[] split = Regex.Split(line, @"[,|>|' ']");
-            int count = 0;
-            foreach (string individualLine in split)
-            {
-                if (individualLine == "") continue;
-                Individual i = GetIndividual(individualLine, individuals, rules);
-                if (i != null)
-                {
-                    individuals.Add(i);
-                    count++;
-                }
-            }
-            if (count == 1) return;
-            ArrayList ruleIndividuals = GetLastIndividual(count, individuals);
-            Individual consequence = (Individual)ruleIndividuals[ruleIndividuals.Count - 1];
-            ruleIndividuals.RemoveAt(ruleIndividuals.Count - 1);
-            rules.Add(new Rule(ruleIndividuals, consequence));
-            return;
-        }
-        private ArrayList GetLastIndividual(int c, ArrayList individuals)
-        {
-            ArrayList lastIndividuals = new ArrayList();
-            while (c != 0)
-            {
-                lastIndividuals.Add(individuals[individuals.Count - c - 1]);
-                c--;
-            }
-            return lastIndividuals;
+            ArrayList properties = new ArrayList();
+            properties.Add(new Property(split[0]));
+            return new Individual(split[1], properties);
         }
     }
 }
