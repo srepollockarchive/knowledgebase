@@ -31,19 +31,28 @@ namespace knowledgebase
             {
                 parser.ParseLine(l, individuals, rules);
             }
-            Console.WriteLine("Individuals\n----------");
+            Console.WriteLine("Applying Rules...");
+            bool newFact = true;
+            while (newFact)
+            {
+                newFact = false;
+                foreach (Individual i in individuals)
+                {
+                    foreach (Rule r in rules)
+                    {
+                        if (r.DoesPass(i))
+                        {
+                            newFact = true;
+                            i.properties.Add(r.consequence);
+                        }
+                    }
+                }
+            }
+            // TODO: Done facts
+            Console.WriteLine("Facts\n----------");
             foreach (Individual i in individuals)
             {
                 Console.WriteLine(i.ToString());
-            }
-            Console.WriteLine("Rules\n-----");
-            foreach (Rule r in rules)
-            {
-                Console.WriteLine(r.ToString());
-                if (r.CheckIfSatisfied(individuals))
-                {
-                    Console.WriteLine(r.consequence.ToString());
-                }
             }
             Console.WriteLine("Press 'ESC' to close the window.");
             if (Console.ReadKey(true).Key == ConsoleKey.Escape) return;
@@ -59,7 +68,7 @@ namespace knowledgebase
             this.name = "";
             this.properties = new ArrayList();
         }
-        public Individual(string name, Property property)
+        public Individual(string name, string property)
         {
             this.name = name;
             this.properties = new ArrayList();
@@ -73,77 +82,33 @@ namespace knowledgebase
         public override string ToString()
         {
             string properties = "";
-            foreach (Property p in this.properties)
+            foreach (String p in this.properties)
             {
                 properties += p.ToString() + ", ";
             }
-            return "Individual: name = " + this.name + " Properties = " + properties;
-        }
-    }
-    class Property
-    {
-        public string type;
-        public Property()
-        {
-            this.type = "";
-        }
-        public Property(string type)
-        {
-            this.type = type;
-        }
-        public override string ToString()
-        {
-            return this.type;
+            return "Individual: " + this.name + " Properties = " + properties;
         }
     }
     class Rule
     {
         public ArrayList antecedents;
-        public Individual consequence;
+        public string consequence;
         public Rule()
         {
             this.antecedents = new ArrayList();
-            this.consequence = new Individual();
+            this.consequence = "";
         }
-        public Rule(ArrayList antecedents, Individual individual)
+        public Rule(ArrayList antecedents, string individual)
         {
             this.antecedents = antecedents;
             this.consequence = individual;
         }
-        public Rule(string[] antecedents, Individual individual)
+        public bool DoesPass(Individual i)
         {
-
-        }
-        // TODO: Handle generics
-        public bool CheckIfSatisfied(ArrayList individuals)
-        {
-            Regex rgx = new Regex("[A-Z]");
-            bool flag = false;
-            foreach (Individual i in this.antecedents) // TODO: Possible Generic
-            {
-                flag = false;
-                foreach (Individual ii in individuals)
-                {
-                    // if (i.name == ii.name) flag = true;
-                    if (rgx.IsMatch(i.name) && !CheckProperties(i, ii)) // Generic
-                    {
-                        return false;
-                    }
-                }
-                if (!flag) return false;
-            }
+            if (i.properties.Contains(this.consequence)) return false;
+            foreach (string c in i.properties)
+                if (!i.properties.Contains(c)) return false;
             return true;
-        }
-        private bool CheckProperties(Individual i, Individual ii)
-        {
-            foreach(Property p in i.properties)
-            {
-                foreach (Property pp in ii.properties)
-                {
-                    if (p.type == pp.type) return true;
-                }
-            }
-            return false;
         }
         public override string ToString()
         {
@@ -159,31 +124,22 @@ namespace knowledgebase
     {
         public void ParseLine(string line, ArrayList individuals, ArrayList rules)
         {
-            if (!line.Contains(">")) // Def not a rule
+            if (!line.Contains(">"))
             {
                 Individual i = GetIndividual(line, individuals);
                 if (i != null) individuals.Add(i);
-            } else { // we have a rule
-                // TODO: Check if generic and apply
+            } else {
                 string[] split = line.Split(">");
                 string[] ruleIndividuals = split[0].Split(",");
                 ArrayList antecedents = new ArrayList();
                 foreach (string s in ruleIndividuals)
                 {
-                    antecedents.Add(GetIndividual(s));
+                    antecedents.Add(GetProperty(s));
                 }
-                rules.Add(new Rule(antecedents, GetIndividual(split[1])));
+                rules.Add(new Rule(antecedents, GetProperty(split[1])));
             }
             return;
         }
-        public Individual GetIndividual(string line)
-        {
-            string[] split = Regex.Split(line, @"[(|)]");
-            ArrayList properties = new ArrayList();
-            properties.Add(new Property(split[0]));
-            return new Individual(split[1], properties);
-        }
-        // TODO: Check if generic
         public Individual GetIndividual(string line, ArrayList individuals)
         {
             string[] split = Regex.Split(line, @"[(|)]");
@@ -191,13 +147,18 @@ namespace knowledgebase
             {
                 if (i.name == split[1])
                 {
-                    i.properties.Add(new Property(split[0]));
+                    i.properties.Add(split[0]);
                     return null;
                 }
             }
             ArrayList properties = new ArrayList();
-            properties.Add(new Property(split[0]));
+            properties.Add(split[0]);
             return new Individual(split[1], properties);
+        }
+        public string GetProperty(string line)
+        {
+            string[] split = Regex.Split(line, @"[(|)]");
+            return split[0];
         }
     }
 }
