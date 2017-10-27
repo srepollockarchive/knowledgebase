@@ -9,7 +9,7 @@ namespace knowledgebase
         static void Main(string[] args)
         {
             Parser parser = new Parser();
-            ArrayList individuals = new ArrayList();
+            ArrayList facts = new ArrayList();
             ArrayList rules = new ArrayList();
             ArrayList strings = new ArrayList();
             ArrayList newFacts = new ArrayList();
@@ -31,93 +31,56 @@ namespace knowledgebase
             }
             foreach (string l in strings)
             {
-                parser.ParseLine(l, individuals, rules);
+                parser.ParseLine(l, facts, rules);
             }
             Console.WriteLine("New Rule Facts\n-----------------");
             bool newFact = true;
             while (newFact)
             {
                 newFact = false;
-                foreach (Individual i in individuals)
+                foreach (Rule r in rules)
                 {
-                    foreach (Rule r in rules)
+                    if (r.DoesPass(facts))
                     {
-                        if (r.DoesPass(i))
-                        {
-                            newFact = true;
-                            i.properties.Add(r.consequence);
-                            newFacts.Add(r.consequence);
-                            Console.WriteLine(r.consequence + "(" + i.name + ")");
-                        }
+                        newFact = true;
+                        facts.Add(r.consequence);
+                        Console.WriteLine(r.consequence);
                     }
                 }
             }
-            // TODO: Done facts
-            //foreach (string nf in newFacts)
-            //{
-            //    Console.WriteLine(nf);
-            //}
             Console.WriteLine("Press 'ESC' to close the window.");
             if (Console.ReadKey(true).Key == ConsoleKey.Escape) return;
-        }
-    }
-    class Individual
-    {
-        public string name;
-        public ArrayList properties;
-        public Individual()
-        {
-            this.name = "";
-            this.properties = new ArrayList();
-        }
-        public Individual(string name, string property)
-        {
-            this.name = name;
-            this.properties = new ArrayList();
-            this.properties.Add(property);
-        }
-        public Individual(string name, ArrayList properties)
-        {
-            this.name = name;
-            this.properties = properties;
-        }
-        public override string ToString()
-        {
-            string properties = "";
-            foreach (String p in this.properties)
-            {
-                properties += p.ToString() + ", ";
-            }
-            return "Individual: " + this.name + " Properties = " + properties;
         }
     }
     class Rule
     {
         public ArrayList antecedents;
-        public string consequence;
+        public char consequence;
         public Rule()
         {
             this.antecedents = new ArrayList();
-            this.consequence = "";
+            this.consequence = '\0';
         }
-        public Rule(ArrayList antecedents, string individual)
+        public Rule(ArrayList antecedents, char consequence)
         {
             this.antecedents = antecedents;
-            this.consequence = individual;
+            this.consequence = consequence;
         }
-        public bool DoesPass(Individual i)
+        public bool DoesPass(ArrayList facts)
         {
-            if (i.properties.Contains(this.consequence))
-                return false;
-            foreach (string condition in this.antecedents)
-                if (!i.properties.Contains(condition))
+            // check if we have the fact and return true if so
+            if (facts.Contains(this.consequence)) return false;
+            foreach (char c in this.antecedents)
+            {
+                if (!facts.Contains(c)) 
                     return false;
+            }
             return true;
         }
         public override string ToString()
         {
             string antecedents = "";
-            foreach (Individual s in this.antecedents)
+            foreach (char s in this.antecedents)
             {
                 antecedents += "(" + s.ToString() + ")";
             }
@@ -126,43 +89,33 @@ namespace knowledgebase
     }
     class Parser
     {
-        public void ParseLine(string line, ArrayList individuals, ArrayList rules)
+        public void ParseLine(string line, ArrayList facts, ArrayList rules)
         {
             if (!line.Contains(">"))
             {
-                Individual i = GetIndividual(line, individuals);
-                if (i != null) individuals.Add(i);
+                char i = GetFact(line, facts);
+                if (i != '\0') facts.Add(i);
             } else {
                 string[] split = line.Split(" > ");
                 string[] ruleIndividuals = split[0].Split(", ");
                 ArrayList antecedents = new ArrayList();
                 foreach (string s in ruleIndividuals)
                 {
-                    antecedents.Add(GetProperty(s));
+                    antecedents.Add(GetFact(s));
                 }
-                rules.Add(new Rule(antecedents, GetProperty(split[1])));
+                rules.Add(new Rule(antecedents, GetFact(split[1])));
             }
             return;
         }
-        public Individual GetIndividual(string line, ArrayList individuals)
+        public char GetFact(string line, ArrayList facts)
         {
-            string[] split = Regex.Split(line, @"[(|)]");
-            foreach (Individual i in individuals)
-            {
-                if (i.name == split[1])
-                {
-                    i.properties.Add(split[0]);
-                    return null;
-                }
-            }
-            ArrayList properties = new ArrayList();
-            properties.Add(split[0]);
-            return new Individual(split[1], properties);
+            char f = line[0];
+            if (facts.Contains(f)) return '\0';
+            return f;
         }
-        public string GetProperty(string line)
+        public char GetFact(string line)
         {
-            string[] split = Regex.Split(line, @"[(|)]");
-            return split[0];
+            return line[0];
         }
     }
 }
