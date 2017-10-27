@@ -12,9 +12,11 @@ namespace knowledgebase
             ArrayList individuals = new ArrayList();
             ArrayList rules = new ArrayList();
             ArrayList strings = new ArrayList();
+            ArrayList newFacts = new ArrayList();
             int counter = 0;
             string line;
-            if (args.Length == 0) {
+            if (args.Length == 0)
+            {
                 Console.WriteLine("Please specify a filename as an argument " +
                     "for the program");
                 return;
@@ -31,7 +33,7 @@ namespace knowledgebase
             {
                 parser.ParseLine(l, individuals, rules);
             }
-            Console.WriteLine("Applying Rules...");
+            Console.WriteLine("New Rule Facts\n-----------------");
             bool newFact = true;
             while (newFact)
             {
@@ -44,16 +46,17 @@ namespace knowledgebase
                         {
                             newFact = true;
                             i.properties.Add(r.consequence);
+                            newFacts.Add(r.consequence);
+                            Console.WriteLine(r.consequence + "(" + i.name + ")");
                         }
                     }
                 }
             }
             // TODO: Done facts
-            Console.WriteLine("Facts\n----------");
-            foreach (Individual i in individuals)
-            {
-                Console.WriteLine(i.ToString());
-            }
+            //foreach (string nf in newFacts)
+            //{
+            //    Console.WriteLine(nf);
+            //}
             Console.WriteLine("Press 'ESC' to close the window.");
             if (Console.ReadKey(true).Key == ConsoleKey.Escape) return;
         }
